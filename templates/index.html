@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wikipedia Q&A</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+
+        label {
+            font-size: 16px;
+            margin-bottom: 10px;
+            display: block;
+            color: #333;
+        }
+
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 15px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+
+        button:hover {
+            background-color: #0056b3;
+        }
+
+        #qa-section, #loading-section, #error-section {
+            display: none;
+        }
+
+        #answer-section {
+            margin-top: 20px;
+        }
+
+        #loading-section {
+            text-align: center;
+            font-size: 18px;
+            color: #555;
+        }
+
+        #error-section {
+            color: red;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Wikipedia Q&A</h1>
+
+        <!-- Step 1: Add Topic -->
+        <div id="topic-section">
+            <h2>Step 1: Add a Topic</h2>
+            <label for="topic-input">Enter Topic:</label>
+            <input type="text" id="topic-input" placeholder="e.g., Artificial Intelligence">
+            <button id="add-topic-btn">Add Topic</button>
+        </div>
+
+        <!-- Step 2: Ask Questions -->
+        <div id="qa-section">
+            <h2>Step 2: Ask Questions</h2>
+            <label for="user-question">Enter your question:</label>
+            <input type="text" id="user-question" placeholder="Ask about the topic...">
+            <button id="ask-question-btn">Ask</button>
+
+            <div id="answer-section">
+                <h3>Answer:</h3>
+                <p id="answer"></p>
+            </div>
+        </div>
+
+        <!-- Loading Indicator -->
+        <div id="loading-section">
+            <p>Please wait while we process the topic...</p>
+        </div>
+
+        <!-- Error Message -->
+        <div id="error-section">
+            <p id="error-message"></p>
+        </div>
+    </div>
+
+    <script>
+        // Add Topic Button Handler
+        document.getElementById('add-topic-btn').addEventListener('click', async function() {
+            const topic = document.getElementById('topic-input').value;
+            if (!topic) {
+                alert('Please enter a topic');
+                return;
+            }
+
+            // Show loading screen
+            document.getElementById('loading-section').style.display = 'block';
+            document.getElementById('topic-section').style.display = 'none';
+
+            try {
+                // Send request to backend to process topic
+                const response = await fetch('/process_topic', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ topic: topic })
+                });
+
+                const data = await response.json();
+                if (data.success) {
+                    // Hide loading, show Q&A section
+                    document.getElementById('loading-section').style.display = 'none';
+                    document.getElementById('qa-section').style.display = 'block';
+                } else {
+                    showError(data.message);
+                }
+            } catch (error) {
+                showError('Error processing topic. Please try again later.');
+            }
+        });
+
+        // Ask Question Button Handler
+        document.getElementById('ask-question-btn').addEventListener('click', async function() {
+            const question = document.getElementById('user-question').value;
+            if (!question) {
+                alert('Please enter a question');
+                return;
+            }
+
+            // Show loading while waiting for response
+            document.getElementById('answer-section').style.display = 'none';
+            document.getElementById('loading-section').style.display = 'block';
+
+            try {
+                // Send question to backend
+                const response = await fetch('/ask_question', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ question: question })
+                });
+
+                const data = await response.json();
+                document.getElementById('loading-section').style.display = 'none';
+                document.getElementById('answer-section').style.display = 'block';
+
+                if (data.success) {
+                    document.getElementById('answer').textContent = data.answer;
+                } else {
+                    document.getElementById('answer').textContent = 'Error fetching answer';
+                }
+            } catch (error) {
+                document.getElementById('loading-section').style.display = 'none';
+                document.getElementById('answer-section').style.display = 'block';
+                document.getElementById('answer').textContent = 'An error occurred.';
+            }
+        });
+
+        // Function to Show Error
+        function showError(message) {
+            document.getElementById('loading-section').style.display = 'none';
+            document.getElementById('error-section').style.display = 'block';
+            document.getElementById('error-message').textContent = message;
+        }
+    </script>
+</body>
+</html>
