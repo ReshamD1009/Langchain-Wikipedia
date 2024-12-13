@@ -33,11 +33,12 @@ def fetch_and_split_wikipedia_content(topic, load_max_docs=3, chunk_size=500, ch
     docs = loader.load() 
     text_splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     splits = text_splitter.split_documents(docs) 
+    
 
     print(f"Created {len(splits)} chunks for the topic '{topic}'.")  # Print when chunks are made
     return splits
 
-def store_embeddings_pgvector(texts, table_name):
+def store_embeddings_pgvector(texts, transcriptions, table_name):
     """Store embeddings in PGVector."""
     try:
         embeddings_generator = GoogleGenerativeAIEmbeddings(
@@ -48,7 +49,7 @@ def store_embeddings_pgvector(texts, table_name):
             connection_string=DB_CONNECTION_URL_2,
             embedding_function=embeddings_generator,
         )
-        vectorstore.add_texts(texts, table_name=table_name)
+        vectorstore.add_texts(texts, metadatas=[chunk.metadata for chunk in transcriptions], table_name=table_name)
         print(f"Data successfully stored in the '{table_name}' table.")  # Print when embeddings are stored
     except Exception as e:
         print(f"Error storing embeddings in PGVector: {e}")
@@ -105,7 +106,7 @@ def process_topic():
         texts = [chunk.page_content for chunk in transcriptions]
         
         # Store the embeddings in PGVector
-        store_embeddings_pgvector(texts, table_name='wikipedia_embeddings')
+        store_embeddings_pgvector(texts, transcriptions, table_name='wikipedia_embeddings')
 
         return jsonify({"success": True})
     except Exception as e:
